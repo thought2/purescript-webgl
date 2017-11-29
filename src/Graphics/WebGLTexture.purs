@@ -28,6 +28,8 @@ module Graphics.WebGLTexture
   , activeTexture
   , bindTexture
   , unbindTexture
+  , texImage2D
+  , texImage2DPixels
   , handleLoad2D
   , handleSubLoad2D
   , createTexture
