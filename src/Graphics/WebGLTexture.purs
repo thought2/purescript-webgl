@@ -35,6 +35,7 @@ module Graphics.WebGLTexture
   , createTexture
   , newTexture
   , newTextureInit
+  , texParameteri
 
   , targetTypeToConst
 
