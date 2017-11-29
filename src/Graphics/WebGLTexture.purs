@@ -27,6 +27,7 @@ module Graphics.WebGLTexture
   , createTexture
   , newTexture
   , newTextureInit
+  , asArrayBufferView_
 )where
 
 import Prelude
