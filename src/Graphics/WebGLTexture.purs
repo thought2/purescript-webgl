@@ -14,15 +14,7 @@
 
 module Graphics.WebGLTexture
 (
-    TargetType(..)
-  , InternalFormat(..)
-  , TextureType(..)
-  , SymbolicParameter(..)
-  , TexTarget(..)
-  , TexParName(..)
-  , WebGLTex(..)
-  , TexFilterSpec(..)
-
+  WebGLTex(..)
   , texture2DFor
   , withTexture2D
   , activeTexture
@@ -35,10 +27,6 @@ module Graphics.WebGLTexture
   , createTexture
   , newTexture
   , newTextureInit
-  , texParameteri
-
-  , targetTypeToConst
-
 )where
 
 import Prelude
@@ -47,225 +35,126 @@ import Data.Int.Bits ((.&.),(.|.))
 import Graphics.Canvas(CanvasImageSource())
 
 import Graphics.WebGL (Uniform(Uniform))
+
+import Graphics.WebGLTexture.InternalFormat as IF
+import Graphics.WebGLTexture.MinFilter as Min
+import Graphics.WebGLTexture.MagFilter as Mag
+import Graphics.WebGLTexture.TargetType as TgtT
+import Graphics.WebGLTexture.Target as Tgt
+import Graphics.WebGLTexture.TextureType as TxT
+import Graphics.WebGLTexture.Wrap as W
+import Graphics.WebGLTexture.Pack as P
+
 import Graphics.WebGLRaw (texImage2D_, GLenum, GLint, GLsizei, WebGLUniformLocation, WebGLTexture, uniform1i_, createTexture_,
-    _TEXTURE0, activeTexture_, _MAX_COMBINED_TEXTURE_IMAGE_UNITS, bindTexture_, pixelStorei_, texParameteri_, _TEXTURE_2D, generateMipmap_,
-    _CLAMP_TO_EDGE, _LINEAR_MIPMAP_NEAREST, _LINEAR, _NEAREST, _TEXTURE_WRAP_T, _TEXTURE_WRAP_S, _TEXTURE_MAG_FILTER, _TEXTURE_MIN_FILTER,
-    _TEXTURE_CUBE_MAP, _UNPACK_COLORSPACE_CONVERSION_WEBGL, _UNPACK_PREMULTIPLY_ALPHA_WEBGL, _UNPACK_FLIP_Y_WEBGL, _UNPACK_ALIGNMENT,
-    _PACK_ALIGNMENT, _UNSIGNED_SHORT_5_5_5_1, _UNSIGNED_SHORT_4_4_4_4, _UNSIGNED_SHORT_5_6_5, _FLOAT, _RGBA, _UNSIGNED_BYTE, _RGB, _LUMINANCE_ALPHA,
-    _LUMINANCE, _ALPHA, _TEXTURE_CUBE_MAP_NEGATIVE_Z, _TEXTURE_CUBE_MAP_POSITIVE_Z, _TEXTURE_CUBE_MAP_NEGATIVE_Y, _TEXTURE_CUBE_MAP_POSITIVE_Y,
-    _TEXTURE_CUBE_MAP_NEGATIVE_X, _TEXTURE_CUBE_MAP_POSITIVE_X, ArrayBufferView)
+    _TEXTURE0, activeTexture_, _MAX_COMBINED_TEXTURE_IMAGE_UNITS, bindTexture_, pixelStorei_, _TEXTURE_2D, generateMipmap_,
+     ArrayBufferView)
+
 import Partial.Unsafe (unsafeCrashWith)
 import Data.TypedArray (newUint8Array)
 import Data.ArrayBuffer.Types (ArrayView)
 
 newtype WebGLTex = WebGLTex WebGLTexture
 
-data TargetType =     TEXTURE_2D
-                    | TEXTURE_CUBE_MAP_POSITIVE_X
-                    | TEXTURE_CUBE_MAP_NEGATIVE_X
-                    | TEXTURE_CUBE_MAP_POSITIVE_Y
-                    | TEXTURE_CUBE_MAP_NEGATIVE_Y
-                    | TEXTURE_CUBE_MAP_POSITIVE_Z
-                    | TEXTURE_CUBE_MAP_NEGATIVE_Z
-
-targetTypeToConst :: TargetType -> GLenum
-targetTypeToConst TEXTURE_2D = _TEXTURE_2D
-targetTypeToConst TEXTURE_CUBE_MAP_POSITIVE_X = _TEXTURE_CUBE_MAP_POSITIVE_X
-targetTypeToConst TEXTURE_CUBE_MAP_NEGATIVE_X = _TEXTURE_CUBE_MAP_NEGATIVE_X
-targetTypeToConst TEXTURE_CUBE_MAP_POSITIVE_Y = _TEXTURE_CUBE_MAP_POSITIVE_Y
-targetTypeToConst TEXTURE_CUBE_MAP_NEGATIVE_Y = _TEXTURE_CUBE_MAP_NEGATIVE_Y
-targetTypeToConst TEXTURE_CUBE_MAP_POSITIVE_Z = _TEXTURE_CUBE_MAP_POSITIVE_Z
-targetTypeToConst TEXTURE_CUBE_MAP_NEGATIVE_Z = _TEXTURE_CUBE_MAP_NEGATIVE_Z
-
-data InternalFormat =
-  IF_ALPHA
-  | IF_LUMINANCE
-  | IF_LUMINANCE_ALPHA
-  | IF_RGB
-  | IF_RGBA
-
-internalFormatToConst :: InternalFormat -> GLenum
-internalFormatToConst IF_ALPHA     = _ALPHA
-internalFormatToConst IF_LUMINANCE = _LUMINANCE
-internalFormatToConst IF_LUMINANCE_ALPHA = _LUMINANCE_ALPHA
-internalFormatToConst IF_RGB       = _RGB
-internalFormatToConst IF_RGBA      = _RGBA
-
-data TextureType =
-  UNSIGNED_BYTE
-  | RGBA
-  | FLOAT
-  | UNSIGNED_SHORT_5_6_5
-  | UNSIGNED_SHORT_4_4_4_4
-  | UNSIGNED_SHORT_5_5_5_1
-
-textureTypeToConst :: TextureType -> GLenum
-textureTypeToConst UNSIGNED_BYTE = _UNSIGNED_BYTE
-textureTypeToConst RGBA = _RGBA
-textureTypeToConst FLOAT = _FLOAT
-textureTypeToConst UNSIGNED_SHORT_5_6_5 = _UNSIGNED_SHORT_5_6_5
-textureTypeToConst UNSIGNED_SHORT_4_4_4_4 = _UNSIGNED_SHORT_4_4_4_4
-textureTypeToConst UNSIGNED_SHORT_5_5_5_1 = _UNSIGNED_SHORT_5_5_5_1
-
-data SymbolicParameter =
-    PACK_ALIGNMENT
-  | UNPACK_ALIGNMENT
-  | UNPACK_FLIP_Y_WEBGL
-  | UNPACK_PREMULTIPLY_ALPHA_WEBGL
-  | UNPACK_COLORSPACE_CONVERSION_WEBGL
-
-symbolicParameterToConst :: SymbolicParameter -> GLenum
-symbolicParameterToConst PACK_ALIGNMENT = _PACK_ALIGNMENT
-symbolicParameterToConst UNPACK_ALIGNMENT = _UNPACK_ALIGNMENT
-symbolicParameterToConst UNPACK_FLIP_Y_WEBGL = _UNPACK_FLIP_Y_WEBGL
-symbolicParameterToConst UNPACK_PREMULTIPLY_ALPHA_WEBGL = _UNPACK_PREMULTIPLY_ALPHA_WEBGL
-symbolicParameterToConst UNPACK_COLORSPACE_CONVERSION_WEBGL = _UNPACK_COLORSPACE_CONVERSION_WEBGL
-
-data TexTarget =
-  TTEXTURE_2D
-  | TTEXTURE_CUBE_MAP
-
-texTargetToConst :: TexTarget -> GLenum
-texTargetToConst TTEXTURE_2D = _TEXTURE_2D
-texTargetToConst TTEXTURE_CUBE_MAP = _TEXTURE_CUBE_MAP
-
-data TexParName =
-  TEXTURE_MIN_FILTER
-  | TEXTURE_MAG_FILTER
-  | TEXTURE_WRAP_S
-  | TEXTURE_WRAP_T
---  | TEXTURE_MAX_ANISOTROPY_EXT
-
-texParNameToConst :: TexParName -> GLenum
-texParNameToConst TEXTURE_MIN_FILTER = _TEXTURE_MIN_FILTER
-texParNameToConst TEXTURE_MAG_FILTER = _TEXTURE_MAG_FILTER
-texParNameToConst TEXTURE_WRAP_S = _TEXTURE_WRAP_S
-texParNameToConst TEXTURE_WRAP_T = _TEXTURE_WRAP_T
--- texParNameToConst TEXTURE_MAX_ANISOTROPY_EXT = _TEXTURE_MAX_ANISOTROPY_EXT
-
-data TexFilterSpec =
-  NEAREST
-  | LINEAR
-  | MIPMAP
-
-texFilterSpecToMagConst :: TexFilterSpec -> GLenum
-texFilterSpecToMagConst NEAREST = _NEAREST
-texFilterSpecToMagConst LINEAR = _LINEAR
-texFilterSpecToMagConst MIPMAP = _LINEAR
-
-texFilterSpecToMinConst :: TexFilterSpec -> GLenum
-texFilterSpecToMinConst NEAREST = _NEAREST
-texFilterSpecToMinConst LINEAR = _LINEAR
-texFilterSpecToMinConst MIPMAP = _LINEAR_MIPMAP_NEAREST
-
-texture2DFor :: forall a. String -> TexFilterSpec -> (WebGLTex -> Effect a) -> Effect Unit
-texture2DFor name filterSpec continuation = do
+texture2DFor :: forall a. String -> Min.MinFilter -> Mag.MagFilter -> (WebGLTex -> Effect a) -> Effect Unit
+texture2DFor name minFilter magFilter continuation = do
   texture <- createTexture
   loadImage_ name \image -> do
-    handleLoad2D texture filterSpec image
+    handleLoad2D texture minFilter magFilter image
     continuation texture
 
-handleLoad2D :: forall a. WebGLTex -> TexFilterSpec -> a -> Effect Unit
-handleLoad2D texture filterSpec whatever = do
-  bindTexture TEXTURE_2D texture
-  texParameteri TTEXTURE_2D TEXTURE_MAG_FILTER (texFilterSpecToMagConst filterSpec)
-  texParameteri TTEXTURE_2D TEXTURE_MIN_FILTER (texFilterSpecToMinConst filterSpec)
-  pixelStorei UNPACK_FLIP_Y_WEBGL 0
-  pixelStorei UNPACK_PREMULTIPLY_ALPHA_WEBGL 0
-  texImage2D TEXTURE_2D 0 IF_RGBA IF_RGBA UNSIGNED_BYTE whatever
-  case filterSpec of
-    MIPMAP -> generateMipmap_ _TEXTURE_2D
+handleLoad2D :: forall a. WebGLTex -> Min.MinFilter -> Mag.MagFilter -> a -> Effect Unit
+handleLoad2D texture minFilter magFilter whatever = do
+  bindTexture TgtT.TEXTURE_2D texture
+  Mag.magFilter Tgt.TEXTURE_2D magFilter
+  Min.minFilter Tgt.TEXTURE_2D minFilter
+  pixelStorei P.UNPACK_FLIP_Y_WEBGL 0
+  pixelStorei P.UNPACK_PREMULTIPLY_ALPHA_WEBGL 0
+  texImage2D TgtT.TEXTURE_2D 0 IF.RGBA IF.RGBA TxT.UNSIGNED_BYTE whatever
+  case Min.isMipMapped minFilter of
+    true -> generateMipmap_ _TEXTURE_2D
     _ -> pure unit
-  unbindTexture TEXTURE_2D
+  unbindTexture TgtT.TEXTURE_2D
 
-handleSubLoad2D :: forall a. WebGLTex -> Int -> Int -> Int -> Int -> TexFilterSpec -> a -> Effect Unit
-handleSubLoad2D texture x y w h filterSpec whatever = do
-  bindTexture TEXTURE_2D texture
-  texParameteri TTEXTURE_2D TEXTURE_MAG_FILTER (texFilterSpecToMagConst filterSpec)
-  texParameteri TTEXTURE_2D TEXTURE_MIN_FILTER (texFilterSpecToMinConst filterSpec)
-  pixelStorei UNPACK_FLIP_Y_WEBGL 0
-  pixelStorei UNPACK_PREMULTIPLY_ALPHA_WEBGL 0
-  texSubImage2D TEXTURE_2D 0 x y IF_RGBA UNSIGNED_BYTE whatever
-  case filterSpec of
-    MIPMAP -> generateMipmap_ _TEXTURE_2D
+handleSubLoad2D :: forall a. WebGLTex -> Int -> Int -> Int -> Int -> Min.MinFilter -> Mag.MagFilter -> a -> Effect Unit
+handleSubLoad2D texture x y w h minFilter magFilter  whatever = do
+  bindTexture TgtT.TEXTURE_2D texture
+  Mag.magFilter Tgt.TEXTURE_2D magFilter
+  Min.minFilter Tgt.TEXTURE_2D minFilter
+  pixelStorei P.UNPACK_FLIP_Y_WEBGL 0
+  pixelStorei P.UNPACK_PREMULTIPLY_ALPHA_WEBGL 0
+  texSubImage2D TgtT.TEXTURE_2D 0 x y IF.RGBA TxT.UNSIGNED_BYTE whatever
+  case Min.isMipMapped minFilter of
+    true -> generateMipmap_ _TEXTURE_2D
     _ -> pure unit
-  unbindTexture TEXTURE_2D
+  unbindTexture TgtT.TEXTURE_2D
 
-newTexture :: Int -> Int -> TexFilterSpec -> Effect WebGLTex
-newTexture width height filterSpec = do
+newTexture :: Int -> Int -> Min.MinFilter -> Mag.MagFilter -> Effect WebGLTex
+newTexture width height minFilter magFilter  = do
   texture <- createTexture
-  bindTexture TEXTURE_2D texture
-  texParameteri TTEXTURE_2D TEXTURE_MAG_FILTER (texFilterSpecToMagConst filterSpec)
-  texParameteri TTEXTURE_2D TEXTURE_MIN_FILTER (texFilterSpecToMinConst filterSpec)
+  bindTexture TgtT.TEXTURE_2D texture
+  Mag.magFilter Tgt.TEXTURE_2D magFilter
+  Min.minFilter Tgt.TEXTURE_2D minFilter
   when (((width .|. height) .&. 1) == 1) $ do
-    texParameteri TTEXTURE_2D TEXTURE_WRAP_S _CLAMP_TO_EDGE
-    texParameteri TTEXTURE_2D TEXTURE_WRAP_T _CLAMP_TO_EDGE
-  texImage2DNull TEXTURE_2D 0 IF_RGBA width height IF_RGBA UNSIGNED_BYTE
-  case filterSpec of
-    MIPMAP -> generateMipmap_ _TEXTURE_2D
+    W.wrap Tgt.TEXTURE_2D W.S W.CLAMP_TO_EDGE
+    W.wrap Tgt.TEXTURE_2D W.T W.CLAMP_TO_EDGE
+  texImage2DNull TgtT.TEXTURE_2D 0 IF.RGBA width height IF.RGBA TxT.UNSIGNED_BYTE
+  case Min.isMipMapped minFilter of
+    true -> generateMipmap_ _TEXTURE_2D
     _ -> pure unit
-  unbindTexture TEXTURE_2D
+  unbindTexture TgtT.TEXTURE_2D
   pure texture
 
-newTextureInit :: Int -> Int -> TexFilterSpec -> Effect WebGLTex
-newTextureInit width height filterSpec = do
+newTextureInit :: Int -> Int -> Min.MinFilter -> Mag.MagFilter -> Effect WebGLTex
+newTextureInit width height minFilter magFilter = do
   texture <- createTexture
   let pixels = newUint8Array (width * height * 4)
-  bindTexture TEXTURE_2D texture
-  texParameteri TTEXTURE_2D TEXTURE_MAG_FILTER (texFilterSpecToMagConst filterSpec)
-  texParameteri TTEXTURE_2D TEXTURE_MIN_FILTER (texFilterSpecToMinConst filterSpec)
+  bindTexture TgtT.TEXTURE_2D texture
+  Mag.magFilter Tgt.TEXTURE_2D magFilter
+  Min.minFilter Tgt.TEXTURE_2D minFilter
   when (((width .|. height) .&. 1) == 1) $ do
-    texParameteri TTEXTURE_2D TEXTURE_WRAP_S _CLAMP_TO_EDGE
-    texParameteri TTEXTURE_2D TEXTURE_WRAP_T _CLAMP_TO_EDGE
-  texImage2DPixels TEXTURE_2D 0 IF_RGBA width height IF_RGBA UNSIGNED_BYTE (asArrayBufferView_ pixels)
-  case filterSpec of
-    MIPMAP -> generateMipmap_ _TEXTURE_2D
+    W.wrap Tgt.TEXTURE_2D W.S W.CLAMP_TO_EDGE
+    W.wrap Tgt.TEXTURE_2D W.T W.CLAMP_TO_EDGE
+  texImage2DPixels TgtT.TEXTURE_2D 0 IF.RGBA width height IF.RGBA TxT.UNSIGNED_BYTE (asArrayBufferView_ pixels)
+  case Min.isMipMapped minFilter of
+    true -> generateMipmap_ _TEXTURE_2D
     _ -> pure unit
-  unbindTexture TEXTURE_2D
+  unbindTexture TgtT.TEXTURE_2D
   pure texture
 
-texParameteri :: TexTarget -> TexParName -> GLint -> Effect Unit
-texParameteri target pname param = texParameteri_ (texTargetToConst target) (texParNameToConst pname) param
-
-pixelStorei :: SymbolicParameter -> Int -> Effect Unit
-pixelStorei symbolicParameter num = pixelStorei_ (symbolicParameterToConst symbolicParameter) num
+pixelStorei :: P.Pack -> Int -> Effect Unit
+pixelStorei pack num = pixelStorei_ (P.toGLenum pack) num
 
 withTexture2D :: forall typ. WebGLTex -> Int -> Uniform typ -> Int -> Effect Unit -> Effect Unit
 withTexture2D texture index (Uniform sampler) pos continuation = do
   activeTexture index
-  bindTexture TEXTURE_2D texture
+  bindTexture TgtT.TEXTURE_2D texture
   uniform1i sampler.uLocation pos
   continuation
-  unbindTexture TEXTURE_2D
+  unbindTexture TgtT.TEXTURE_2D
 
-bindTexture :: TargetType -> WebGLTex -> Effect Unit
-bindTexture tt (WebGLTex texture) = bindTexture_ (targetTypeToConst tt) texture
+bindTexture :: TgtT.TargetType -> WebGLTex -> Effect Unit
+bindTexture tt (WebGLTex texture) = bindTexture_ (TgtT.toGLenum tt) texture
 
-unbindTexture :: TargetType -> Effect Unit
-unbindTexture tt = bindTexture__ (targetTypeToConst tt)
+unbindTexture :: TgtT.TargetType -> Effect Unit
+unbindTexture tt = bindTexture__ (TgtT.toGLenum tt)
 
-texImage2D :: forall a. TargetType -> GLint -> InternalFormat -> InternalFormat -> TextureType -> a
-                    -> Effect Unit
+texImage2D :: forall a. TgtT.TargetType -> GLint -> IF.InternalFormat -> IF.InternalFormat -> TxT.TextureType -> a -> Effect Unit
 texImage2D target level internalFormat format typ pixels =
-  texImage2D__ (targetTypeToConst target) level (internalFormatToConst internalFormat)
-    (internalFormatToConst format) (textureTypeToConst typ) pixels
+  texImage2D__ (TgtT.toGLenum target) level (IF.toGLenum internalFormat) (IF.toGLenum format) (TxT.toGLenum typ) pixels
 
-texImage2DNull :: TargetType -> GLint -> InternalFormat -> GLsizei -> GLsizei -> InternalFormat -> TextureType
-                    -> Effect Unit
+texImage2DNull :: TgtT.TargetType -> GLint -> IF.InternalFormat -> GLsizei -> GLsizei -> IF.InternalFormat -> TxT.TextureType -> Effect Unit
 texImage2DNull target level internalFormat width height format typ =
-  texImage2DNull_ (targetTypeToConst target) level (internalFormatToConst internalFormat)
-    width height 0 (internalFormatToConst format) (textureTypeToConst typ)
+  texImage2DNull_ (TgtT.toGLenum target) level (IF.toGLenum internalFormat)
+    width height 0 (IF.toGLenum format) (TxT.toGLenum typ)
 
-texImage2DPixels :: TargetType -> GLint -> InternalFormat -> GLsizei -> GLsizei -> InternalFormat -> TextureType -> ArrayBufferView
-                    -> Effect Unit
+texImage2DPixels :: TgtT.TargetType -> GLint -> IF.InternalFormat -> GLsizei -> GLsizei -> IF.InternalFormat -> TxT.TextureType -> ArrayBufferView -> Effect Unit
 texImage2DPixels target level internalFormat width height format typ pixels =
-  texImage2D_ (targetTypeToConst target) level (internalFormatToConst internalFormat)
-    width height 0 (internalFormatToConst format) (textureTypeToConst typ) pixels
+  texImage2D_ (TgtT.toGLenum target) level (IF.toGLenum internalFormat)
+    width height 0 (IF.toGLenum format) (TxT.toGLenum typ) pixels
 
-texSubImage2D :: forall a. TargetType -> GLint -> GLint -> GLint -> InternalFormat -> TextureType -> a
-                    -> Effect Unit
+texSubImage2D :: forall a. TgtT.TargetType -> GLint -> GLint -> GLint -> IF.InternalFormat -> TxT.TextureType -> a -> Effect Unit
 texSubImage2D target level x y format typ pixels =
-  texSubImage2D__ (targetTypeToConst target) level x y (internalFormatToConst format) (textureTypeToConst typ) pixels
+  texSubImage2D__ (TgtT.toGLenum target) level x y (IF.toGLenum format) (TxT.toGLenum typ) pixels
 
 activeTexture :: Int -> Effect Unit
 activeTexture n | n < _MAX_COMBINED_TEXTURE_IMAGE_UNITS = activeTexture_ (_TEXTURE0 + n)
@@ -312,6 +201,4 @@ foreign import texImage2DNull_ :: GLenum
                    -> GLenum
                    -> Effect Unit
 
-
-foreign import bindTexture__ :: GLenum
-                   -> Effect Unit
+foreign import bindTexture__ :: GLenum -> Effect Unit

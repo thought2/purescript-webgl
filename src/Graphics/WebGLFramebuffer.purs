@@ -38,7 +38,8 @@ import Prelude
 import Effect (Effect)
 
 import Graphics.WebGLRaw (GLenum, GLsizei, GLint, WebGLRenderbuffer, WebGLFramebuffer, _UNSIGNED_BYTE, _RGBA, _FRAMEBUFFER, framebufferTexture2D_, _RENDERBUFFER, framebufferRenderbuffer_, renderbufferStorage_, bindRenderbuffer_, createRenderbuffer_, bindFramebuffer_, createFramebuffer_, checkFramebufferStatus_, _DEPTH_STENCIL_ATTACHMENT, _STENCIL_ATTACHMENT, _DEPTH_ATTACHMENT, _COLOR_ATTACHMENT0, _DEPTH_COMPONENT16, _RGB5_A1, _RGB565, _RGBA4)
-import Graphics.WebGLTexture (TargetType, WebGLTex(WebGLTex), targetTypeToConst)
+import Graphics.WebGLTexture (WebGLTex(WebGLTex) )
+import Graphics.WebGLTexture.TargetType (TargetType, toGLenum)
 import Data.ArrayBuffer.Types (ArrayView, Uint8Array)
 import Data.TypedArray (asArray, asUint8Array)
 
@@ -122,7 +123,7 @@ framebufferRenderbuffer attachementPoint (WebGLRendBuf buf) =
 
 framebufferTexture2D :: AttachementPoint -> TargetType -> WebGLTex -> Effect Unit
 framebufferTexture2D attachementPoint targetType (WebGLTex texture) =
-  framebufferTexture2D_ _FRAMEBUFFER (attachementPointToConst attachementPoint) (targetTypeToConst targetType) texture 0
+  framebufferTexture2D_ _FRAMEBUFFER (attachementPointToConst attachementPoint) (toGLenum targetType) texture 0
 
 readPixels :: GLint ->
                GLint ->
