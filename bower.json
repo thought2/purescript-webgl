@@ -6,7 +6,9 @@
     "Michael Karg <michael.karg@symbolian.net>"
   ],
   "description": "WebGL binding for purescript",
-  "keywords": ["purescript"],
+  "keywords": [
+    "purescript"
+  ],
   "repository": {
     "type": "git",
     "url": "git://github.com/jutaro/purescript-webgl.git"
@@ -31,13 +33,12 @@
     "purescript-functions": "^4.0.0",
     "purescript-arraybuffer-types": "^2.0.0",
     "purescript-typedarray": "mgmeier/purescript-typedarray#master",
-    "purescript-vector": "AlexMouton/purescript-vector#compiler-0.12",
-    "purescript-matrix": "AlexMouton/purescript-matrix#compiler-0.12",
     "purescript-integers": "^4.0.0",
     "purescript-foldable-traversable": "^4.0.0",
     "purescript-either": "^4.0.0",
     "purescript-tuples": "^5.0.0",
     "purescript-unfoldable": "^4.0.0",
-    "purescript-canvas": "^4.0.0"
+    "purescript-canvas": "^4.0.0",
+    "purescript-arrays": "^5.3.1"
   }
 }
